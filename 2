@@ -1,0 +1,36 @@
+# Solazyme Bioinformatics Container
+#
+# A portable analysis environment capable of running on any system or virtual machine
+# with linux and Docker installed
+# version 0.1
+
+FROM phusion/baseimage
+
+MAINTAINER Timothy Laurent
+
+#install required libs
+RUN apt-get update && apt-get install -y -q git build-essential autotools-dev automake pkg-config curl wget && apt-get clean
+
+## install dependencies
+RUN mkdir /install && cd install ;\
+    apt-get install python-setuptools python-dev -y -q && apt-get clean ;\
+    git clone git://github.com/chapmanb/cloudbiolinux.git ;\
+    cd cloudbiolinux ;\
+    python setup.py build ;\
+    sudo python setup.py install
+
+
+WORKDIR  /install/cloudbiolinux
+## install cloudbiolinux
+
+RUN fab -f fabfile.py -H localhost install_biolinux:packages && apt-get clean
+
+#RUN apt-get install libcairo2-dev libgd2-xpm-dev  libpango1.0-dev gtk+2.0 libgnomecanvas2-dev libgnomeui-dev libnotify-dev libglade2-dev graphviz libnet-libidn-perl uuid-dev libdb-dev libmysqlclient-dev -y -q ;\
+#    fab -f fabfile.py -H localhost install_biolinux:libraries && apt-get clean
+
+RUN fab -f fabfile.py -H localhost install_libraries:perl
+
+
+RUN sudo bash -c "pip install --allow-unverified Pyrex --allow-external Pyrex --upgrade Pyrex"
+RUN fab -f fabfile.py -H localhost install_libraries:python && apt-get clean
+RUN fab -f fabfile.py -H localhost install_biolinux:libraries && apt-get clean
